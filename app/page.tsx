@@ -1,103 +1,100 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { ClipboardDocumentIcon, CheckIcon } from "@heroicons/react/24/outline";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [text, setText] = useState("");
+  const [summary, setSummary] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const handleSummarize = async () => {
+    if (!text.trim()) return;
+    setLoading(true);
+    setSummary("");
+    setCopied(false);
+
+    try {
+      const res = await fetch("/api/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSummary(`📰 ${data.headline}\n\n${data.shortSummary}`);
+      } else {
+        setSummary("❌ Error: " + data.error);
+      }
+    } catch (err) {
+      setSummary("❌ Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!summary) return;
+    try {
+      await navigator.clipboard.writeText(summary);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000); // reset after 2s
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-6">
+      <div className="w-full max-w-2xl bg-white shadow-xl rounded-2xl p-6 border border-gray-300">
+        <h1 className="text-3xl font-extrabold text-center text-gray-900 mb-4">
+          AI Text Summarizer
+        </h1>
+        <p className="text-center text-gray-700 mb-6">
+          Paste your text below and get a concise summary instantly.
+        </p>
+
+        {/* Input Area */}
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          className="w-full h-40 p-4 border border-gray-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none text-gray-900 placeholder-gray-600"
+          placeholder="Paste your text here..."
+        />
+
+        {/* Button */}
+        <button
+          onClick={handleSummarize}
+          disabled={loading || !text.trim()}
+          className="w-full mt-4 bg-blue-700 text-white font-semibold py-3 rounded-xl hover:bg-blue-800 transition disabled:opacity-50"
+        >
+          {loading ? "Summarizing..." : "Summarize"}
+        </button>
+
+        {/* Result Box */}
+        <div className="mt-6 p-4 bg-gray-200 rounded-xl text-gray-900 relative min-h-[100px]">
+          {summary ? (
+            <>
+              <p className="whitespace-pre-line">{summary}</p>
+              <button
+                onClick={handleCopy}
+                className="absolute top-3 right-3 text-gray-700 hover:text-gray-900"
+                title="Copy to clipboard"
+              >
+                {copied ? (
+                  <CheckIcon className="h-6 w-6 text-green-600" />
+                ) : (
+                  <ClipboardDocumentIcon className="h-6 w-6" />
+                )}
+              </button>
+            </>
+          ) : (
+            <p className="italic text-gray-600">Summary will appear here...</p>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </div>
+    </main>
   );
 }
